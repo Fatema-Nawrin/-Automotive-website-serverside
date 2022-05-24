@@ -17,6 +17,8 @@ async function run() {
     try {
         await client.connect();
         const productsCollection = client.db('blackstone_automotor').collection('products');
+        const bookingsCollection = client.db('blackstone_automotor').collection('bookings');
+        const reviewsCollection = client.db('blackstone_automotor').collection('reviews');
 
         app.get('/products', async (req, res) => {
             const query = {};
@@ -28,6 +30,25 @@ async function run() {
             const query = { _id: ObjectId(id) };
             const product = await productsCollection.findOne(query);
             res.send(product);
+        })
+
+        app.get('/bookings', async (req, res) => {
+            const buyerEmail = req.query.buyerEmail;
+            const filter = { buyerEmail: buyerEmail };
+            const bookings = await bookingsCollection.find(filter).toArray();
+            res.send(bookings)
+        })
+
+        app.post('/bookings', async (req, res) => {
+            const booking = req.body;
+            const result = await bookingsCollection.insertOne(booking);
+            res.send(result)
+        })
+
+        app.post('/reviews', async (req, res) => {
+            const review = req.body;
+            const result = await reviewsCollection.insertOne(review);
+            res.send(result)
         })
 
     }
