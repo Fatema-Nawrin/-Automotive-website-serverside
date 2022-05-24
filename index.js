@@ -19,6 +19,7 @@ async function run() {
         const productsCollection = client.db('blackstone_automotor').collection('products');
         const bookingsCollection = client.db('blackstone_automotor').collection('bookings');
         const reviewsCollection = client.db('blackstone_automotor').collection('reviews');
+        const usersCollection = client.db('blackstone_automotor').collection('users');
 
         app.get('/products', async (req, res) => {
             const query = {};
@@ -48,6 +49,18 @@ async function run() {
         app.post('/reviews', async (req, res) => {
             const review = req.body;
             const result = await reviewsCollection.insertOne(review);
+            res.send(result)
+        })
+
+        app.put('/users/:email', async (req, res) => {
+            const email = req.params.email;
+            const user = req.body;
+            const filter = { email: email };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: user,
+            };
+            const result = await usersCollection.updateOne(filter, updateDoc, options)
             res.send(result)
         })
 
