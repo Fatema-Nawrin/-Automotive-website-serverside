@@ -62,6 +62,12 @@ async function run() {
             res.send(product);
         })
 
+        app.post('/product', async (req, res) => {
+            const newProduct = req.body;
+            const result = await productsCollection.insertOne(newProduct)
+            res.send(result);
+        })
+
         app.get('/bookings', verifyJWT, async (req, res) => {
             const buyerEmail = req.query.buyerEmail;
             const decodedEmail = req.decoded.email;
