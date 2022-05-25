@@ -96,9 +96,8 @@ async function run() {
             const email = req.params.email;
             const query = { email: email };
             const user = await usersCollection.findOne(query);
-            if (user.role === 'admin') {
-                res.send(user)
-            }
+            const isAdmin = user.role === 'admin';
+            res.send({ admin: isAdmin })
         })
 
         app.put('/users/admin/:email', verifyJWT, verifyAdmin, async (req, res) => {
