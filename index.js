@@ -38,6 +38,18 @@ async function run() {
         const reviewsCollection = client.db('blackstone_automotor').collection('reviews');
         const usersCollection = client.db('blackstone_automotor').collection('users');
 
+        const verifyAdmin = async (req, res, next) => {
+            const requester = req.decoded.email;
+            const query = { email: requester }
+            const requesterInfo = await usersCollection.findOne(query);
+            if (requesterInfo.role === 'admin') {
+                next();
+            }
+            else {
+                return res.status(403).send({ error: 'Forbidden access' })
+            }
+        }
+
         app.get('/products', async (req, res) => {
             const query = {};
             const products = await productsCollection.find(query).toArray();
@@ -78,6 +90,25 @@ async function run() {
         app.get('/users', verifyJWT, async (req, res) => {
             const users = await usersCollection.find().toArray();
             res.send(users)
+        })
+
+        app.get('/admin/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+            const user = await usersCollection.findOne(query);
+            if (user.role === 'admin') {
+                res.send(user)
+            }
+        })
+
+        app.put('/users/admin/:email', verifyJWT, verifyAdmin, async (req, res) => {
+            const email = req.params.email;
+            const filter = { email: email };
+            const updateDoc = {
+                $set: { role: 'admin' },
+            };
+            const result = await usersCollection.updateOne(filter, updateDoc);
+            res.send(result);
         })
 
         app.put('/users/:email', async (req, res) => {
