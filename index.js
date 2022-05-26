@@ -3,6 +3,7 @@ const cors = require('cors')
 require('dotenv').config()
 const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY)
 const app = express()
 const port = process.env.PORT || 5000;
 // midlleware
@@ -37,6 +38,7 @@ async function run() {
         const bookingsCollection = client.db('blackstone_automotor').collection('bookings');
         const reviewsCollection = client.db('blackstone_automotor').collection('reviews');
         const usersCollection = client.db('blackstone_automotor').collection('users');
+        const paymentsCollection = client.db('blackstone_automotor').collection('payments');
 
         const verifyAdmin = async (req, res, next) => {
             const requester = req.decoded.email;
@@ -81,10 +83,58 @@ async function run() {
             }
         })
 
+        app.get('/bookings/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const booking = await bookingsCollection.findOne(query);
+            res.send(booking);
+        })
+
+        app.get('/allbookings', verifyJWT, verifyAdmin, async (req, res) => {
+            const query = {};
+            const bookings = await bookingsCollection.find(query).toArray();
+            res.send(bookings);
+
+        })
+
+        app.patch('/bookings/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const payment = req.body;
+            const filter = { _id: ObjectId(id) };
+            const updatedDoc = {
+                $set: {
+                    paid: true,
+                    transactionId: payment.transactionId
+                }
+            }
+            const result = await paymentsCollection.insertOne(payment);
+            const updatedBooking = await bookingsCollection.updateOne(filter, updatedDoc);
+            res.send(updatedBooking);
+        })
+
+        app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+            const booking = req.body;
+            const cost = booking.cost;
+            const amount = cost * 100;
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: 'usd',
+                payment_method_types: ['card']
+            });
+            res.send({ clientSecret: paymentIntent.client_secret })
+        });
+
         app.post('/bookings', async (req, res) => {
             const booking = req.body;
             const result = await bookingsCollection.insertOne(booking);
             res.send(result)
+        })
+
+        app.delete('/bookings/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const result = await bookingsCollection.deleteOne(filter);
+            res.send(result);
         })
 
         app.post('/reviews', async (req, res) => {
@@ -92,10 +142,22 @@ async function run() {
             const result = await reviewsCollection.insertOne(review);
             res.send(result)
         })
+        app.get('/reviews', async (req, res) => {
+            const query = {};
+            const reviews = await reviewsCollection.find(query).toArray();
+            res.send(reviews);
+        })
 
         app.get('/users', verifyJWT, async (req, res) => {
             const users = await usersCollection.find().toArray();
             res.send(users)
+        })
+
+        app.get('/users/:email', verifyJWT, async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+            const user = await usersCollection.findOne(query);
+            res.send(user)
         })
 
         app.get('/admin/:email', async (req, res) => {
@@ -128,6 +190,20 @@ async function run() {
             const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
             res.send({ result, token })
         })
+
+        app.put('/usersinfo/:email', async (req, res) => {
+            const email = req.params.email;
+            const userInfo = req.body;
+            const filter = { email: email };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: userInfo
+            }
+            const result = await usersCollection.updateOne(filter, updateDoc, options);
+
+            res.send(result);
+        })
+
 
     }
     finally {
