@@ -100,7 +100,6 @@ async function run() {
         app.patch('/bookings/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             const payment = req.body;
-            console.log(payment);
             const filter = { _id: ObjectId(id) };
             const updatedDoc = {
                 $set: {
@@ -109,7 +108,6 @@ async function run() {
                 }
             }
             const result = await paymentsCollection.insertOne(payment);
-            console.log(result);
             const updatedBooking = await bookingsCollection.updateOne(filter, updatedDoc);
             res.send(updatedBooking);
         })
