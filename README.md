@@ -1,2 +1,4 @@
-# Blackstone Automotive Server side
-- Server side was done by using nodejs, heroku, mongodb, stripe and jsonwebtoken
+# Blackstone Automotive Backend
+
+- Node.js, Express.js, MongoDB, Stripe API, JWT
+- Koyeb platform for deployment
